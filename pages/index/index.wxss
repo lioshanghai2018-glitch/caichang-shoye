@@ -1,7 +1,17 @@
 /* 全局样式 */
 .container {
-  padding: 0 32rpx 200rpx;
+  padding: 0 24rpx 200rpx;
+  background-color: #F5F1EB;
+  min-height: 100vh;
+}
+
+/* 卡片通用样式 */
+.card {
   background-color: #FFFFFF;
+  border-radius: 24rpx;
+  margin-top: 24rpx;
+  padding: 32rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
 }
 
 /* 顶部品牌区 */
@@ -54,7 +64,7 @@
 /* IP形象区域 */
 .ip-section {
   height: 450rpx;
-  margin: 0 -32rpx;
+  margin: 0 -24rpx;
 }
 
 .ip-image {
@@ -69,7 +79,6 @@
 
 /* 问候模块 */
 .greeting-section {
-  margin-top: 32rpx;
 }
 
 .greeting-header {
@@ -99,15 +108,14 @@
 }
 
 .action-card {
-  width: 340rpx;
-  height: 200rpx;
-  background-color: #FFFFFF;
+  width: 300rpx;
+  height: 180rpx;
+  background-color: #F8F8F8;
   border-radius: 16rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
 }
 
 .action-icon {
@@ -131,7 +139,6 @@
 
 /* 限时特惠模块 */
 .flash-sale-section {
-  margin-top: 40rpx;
 }
 
 .section-header {
@@ -253,7 +260,6 @@
 
 /* 团购模块 */
 .group-section {
-  margin-top: 40rpx;
 }
 
 .group-header {
