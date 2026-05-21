@@ -20,12 +20,12 @@ Page({
       {
         icon: '/pages/index/images/icon_vegetable.png',
         title: '买菜',
-        subtitle: '新鲜食材'
+        subtitle: '提前下单 送菜上门'
       },
       {
         icon: '/pages/index/images/icon_neighbor.png',
         title: '邻里',
-        subtitle: '社区互动'
+        subtitle: '免费发布 邻里互助'
       }
     ],
 

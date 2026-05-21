@@ -55,7 +55,7 @@
   </view>
 
   <!-- 卡片3：新鲜好菜 -->
-  <view class="card">
+  <view class="card card-no-padding">
     <view class="group-section">
       <swiper class="group-swiper" circular="true" bindchange="onSwiperChange">
         <swiper-item>
