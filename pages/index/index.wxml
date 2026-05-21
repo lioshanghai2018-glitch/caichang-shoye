@@ -1,0 +1,77 @@
+<view class="container">
+  <!-- IP形象区域 -->
+  <view class="ip-section">
+    <image class="ip-image" src="./萝卜仔.png" mode="aspectFill"></image>
+  </view>
+
+  <!-- 问候模块 -->
+  <view class="greeting-section">
+    <view class="greeting-header">
+      <text class="greeting-text">{{greeting}}</text>
+      <view class="vip-tag">
+        <text>{{vipLevel}}</text>
+      </view>
+    </view>
+    <view class="quick-actions">
+      <view class="action-card" wx:for="{{quickActions}}" wx:key="index">
+        <image class="action-icon" src="{{item.icon}}" mode="aspectFit"></image>
+        <text class="action-title">{{item.title}}</text>
+        <text class="action-subtitle">{{item.subtitle}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 限时特惠模块 -->
+  <view class="flash-sale-section">
+    <view class="section-header">
+      <text class="section-title">限时特惠</text>
+      <view class="countdown-box">
+        <text class="countdown-text">距结束 {{countdown}}</text>
+      </view>
+      <text class="view-more" bindtap="onViewMore">查看更多></text>
+    </view>
+    <scroll-view class="product-scroll" scroll-x="true">
+      <view class="product-list">
+        <view class="product-card" wx:for="{{flashSaleProducts}}" wx:key="id">
+          <view class="product-image-placeholder">
+            <text>商品图占位</text>
+          </view>
+          <text class="product-name">{{item.name}}</text>
+          <text class="product-weight">{{item.weight}}</text>
+          <view class="price-row">
+            <text class="original-price">{{item.originalPrice}}</text>
+            <text class="current-price">{{item.currentPrice}}</text>
+          </view>
+          <view class="add-button" data-id="{{item.id}}" bindtap="addToCart">
+            <text class="add-icon">+</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 团购模块 -->
+  <view class="group-section">
+    <swiper class="group-swiper" circular="true" bindchange="onSwiperChange">
+      <swiper-item>
+        <view class="group-image-placeholder">
+          <text>蔬菜篮插图占位</text>
+        </view>
+      </swiper-item>
+      <swiper-item>
+        <view class="group-image-placeholder">
+          <text>蔬菜篮插图占位</text>
+        </view>
+      </swiper-item>
+    </swiper>
+    <view class="swiper-indicators">
+      <view class="indicator {{currentSwiper === 0 ? 'active' : ''}}"></view>
+      <view class="indicator {{currentSwiper === 1 ? 'active' : ''}}"></view>
+    </view>
+  </view>
+
+  <!-- 底部占位导航 -->
+  <view class="bottom-nav-placeholder">
+    <text>Dayan菜场</text>
+  </view>
+</view>
