@@ -33,17 +33,17 @@
     <scroll-view class="product-scroll" scroll-x="true">
       <view class="product-list">
         <view class="product-card" wx:for="{{flashSaleProducts}}" wx:key="id">
-          <view class="product-image-placeholder">
-            <text>商品图占位</text>
-          </view>
-          <text class="product-name">{{item.name}}</text>
-          <text class="product-weight">{{item.weight}}</text>
-          <view class="price-row">
-            <text class="original-price">{{item.originalPrice}}</text>
-            <text class="current-price">{{item.currentPrice}}</text>
-          </view>
-          <view class="add-button" data-id="{{item.id}}" bindtap="addToCart">
-            <text class="add-icon">+</text>
+          <image class="product-image" src="{{item.image}}" mode="aspectFill"></image>
+          <view class="product-info">
+            <text class="product-name">{{item.name}}</text>
+            <text class="product-weight">{{item.weight}}</text>
+            <view class="price-row">
+              <text class="original-price">{{item.originalPrice}}</text>
+              <text class="current-price">{{item.currentPrice}}</text>
+              <view class="add-button" data-id="{{item.id}}" bindtap="addToCart">
+                <text class="add-icon">+</text>
+              </view>
+            </view>
           </view>
         </view>
       </view>

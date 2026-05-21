@@ -36,28 +36,32 @@ Page({
         name: '有机西红柿',
         weight: '500g/份',
         originalPrice: '¥12.8',
-        currentPrice: '¥8.8'
+        currentPrice: '¥8.8',
+        image: '/pages/index/images/有机西红柿.png'
       },
       {
         id: 2,
         name: '新鲜鸡蛋',
         weight: '10枚/盒',
         originalPrice: '¥15.0',
-        currentPrice: '¥9.9'
+        currentPrice: '¥9.9',
+        image: '/pages/index/images/新鲜鸡蛋.png'
       },
       {
         id: 3,
         name: '有机青菜',
         weight: '300g/份',
         originalPrice: '¥6.0',
-        currentPrice: '¥3.8'
+        currentPrice: '¥3.8',
+        image: '/pages/index/images/有机青菜.png'
       },
       {
         id: 4,
         name: '胡萝卜',
         weight: '400g/份',
         originalPrice: '¥5.0',
-        currentPrice: '¥2.9'
+        currentPrice: '¥2.9',
+        image: '/pages/index/images/胡萝卜.png'
       }
     ],
 
