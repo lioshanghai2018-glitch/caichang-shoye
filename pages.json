@@ -1,0 +1,68 @@
+{
+	"pages": [
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "大研菜场",
+				"navigationBarBackgroundColor": "#F5F1EB",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/category/index",
+			"style": {
+				"navigationBarTitleText": "分类"
+			}
+		},
+		{
+			"path": "pages/order/index",
+			"style": {
+				"navigationBarTitleText": "订单"
+			}
+		},
+		{
+			"path": "pages/mine/index",
+			"style": {
+				"navigationBarTitleText": "我的"
+			}
+		}
+	],
+	"globalStyle": {
+		"backgroundTextStyle": "light",
+		"navigationBarBackgroundColor": "#F5F1EB",
+		"navigationBarTitleText": "大研菜场",
+		"navigationBarTextStyle": "black"
+	},
+	"tabBar": {
+		"color": "#333333",
+		"selectedColor": "#2D5A27",
+		"backgroundColor": "#FFFFFF",
+		"borderStyle": "black",
+		"list": [
+			{
+				"pagePath": "pages/index/index",
+				"text": "首页",
+				"iconPath": "static/images/tab_home.png",
+				"selectedIconPath": "static/images/tab_home_active.png"
+			},
+			{
+				"pagePath": "pages/category/index",
+				"text": "分类",
+				"iconPath": "static/images/tab_category.png",
+				"selectedIconPath": "static/images/tab_category_active.png"
+			},
+			{
+				"pagePath": "pages/order/index",
+				"text": "订单",
+				"iconPath": "static/images/tab_order.png",
+				"selectedIconPath": "static/images/tab_order_active.png"
+			},
+			{
+				"pagePath": "pages/mine/index",
+				"text": "我的",
+				"iconPath": "static/images/tab_mine.png",
+				"selectedIconPath": "static/images/tab_mine_active.png"
+			}
+		]
+	}
+}

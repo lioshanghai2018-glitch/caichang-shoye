@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cp \"F:\\\\0xiaochengxu\\\\maicai-2\\\\pages\\\\index\\\\images\\\\\"* \"C:\\\\Users\\\\Administrator\\\\Documents\\\\HBuilderProjects\\\\买菜-用户端\\\\static\\\\images\\\\\")",
+      "Bash(cp \"F:\\\\0xiaochengxu\\\\maicai-2\\\\pages\\\\index\\\\萝卜仔.png\" \"C:\\\\Users\\\\Administrator\\\\Documents\\\\HBuilderProjects\\\\买菜-用户端\\\\static\\\\images\\\\\")",
+      "Bash(cp \"/f/0xiaochengxu/maicai-2/pages/index/images/\"* \"/c/Users/Administrator/Documents/HBuilderProjects/买菜-用户端/static/images/\")",
+      "Bash(cp \"/f/0xiaochengxu/maicai-2/pages/index/萝卜仔.png\" \"/c/Users/Administrator/Documents/HBuilderProjects/买菜-用户端/static/images/\")",
+      "mcp__MiniMax__understand_image",
+      "Bash(python3 *)",
+      "Bash(python *)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}
