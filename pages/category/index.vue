@@ -2,15 +2,18 @@
 	<view class="page">
 		<!-- 顶部搜索栏 -->
 		<view class="header">
-			<view class="search-bar">
-				<text class="back-arrow">‹</text>
-				<view class="search-input">
-					<text class="search-placeholder">搜索商品</text>
+			<view class="header-row">
+				<view class="back-btn">
+					<text class="back-arrow">‹</text>
 				</view>
-				<view class="cart-icon-wrap">
-					<text class="cart-icon">🛒</text>
-					<view class="cart-badge">
-						<text>3</text>
+				<view class="search-box">
+				<view class="search-icon-line"></view>
+				<input class="search-input" type="text" placeholder="搜索商品" placeholder-class="search-placeholder" />
+			</view>
+				<view class="cart-wrap">
+					<image class="cart-icon" src="/static/images/cart.png" mode="aspectFit"></image>
+					<view class="cart-badge" v-if="cartCount > 0">
+						<text>{{cartCount}}</text>
 					</view>
 				</view>
 			</view>
@@ -72,6 +75,25 @@
 				</view>
 			</scroll-view>
 		</view>
+
+		<!-- 底部结算栏 -->
+		<view class="checkout-bar" v-if="selectedCount > 0">
+			<view class="checkout-left">
+				<view class="checkout-cart-wrap">
+					<image class="checkout-cart-icon" src="/static/images/gouwuche.png" mode="aspectFit"></image>
+					<view class="checkout-cart-badge">
+						<text>{{selectedCount}}</text>
+					</view>
+				</view>
+				<view class="checkout-info">
+					<text class="checkout-count">已选{{selectedCount}}件商品</text>
+					<text class="checkout-total">合计：<text class="checkout-price">¥{{selectedTotal}}</text></text>
+				</view>
+			</view>
+			<view class="checkout-btn">
+				<text>去结算</text>
+			</view>
+		</view>
 	</view>
 </template>
 
@@ -82,6 +104,8 @@
 				currentCategory: 0,
 				currentPromo: 0,
 				cartCount: 3,
+				selectedCount: 3,
+				selectedTotal: '12.16',
 				categories: [
 					{ name: '叶菜类' },
 					{ name: '茄果类' },
@@ -144,9 +168,24 @@
 			},
 			increase(item) {
 				item.quantity++
+				this.updateCart()
 			},
 			decrease(item) {
 				if (item.quantity > 0) item.quantity--
+				this.updateCart()
+			},
+			updateCart() {
+				let count = 0;
+				let total = 0;
+				this.products.forEach(p => {
+					if (p.quantity > 0) {
+						count += p.quantity;
+						total += p.quantity * parseFloat(p.currentPrice.replace('¥', ''));
+					}
+				});
+				this.selectedCount = count;
+				this.selectedTotal = total.toFixed(2);
+				this.cartCount = count;
 			}
 		}
 	}
@@ -162,67 +201,105 @@
 
 /* 顶部搜索栏 */
 .header {
+	background-color: #FFFFFF;
 	padding: 16rpx 24rpx;
 }
 
-.search-bar {
+.header-row {
 	display: flex;
 	align-items: center;
-	height: 80rpx;
+}
+
+.back-btn {
+	width: 56rpx;
+	height: 56rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-right: 12rpx;
 }
 
 .back-arrow {
-	font-size: 48rpx;
+	font-size: 44rpx;
 	color: #333333;
-	margin-right: 16rpx;
 }
 
-.search-input {
+.search-box {
 	flex: 1;
-	height: 80rpx;
+	height: 68rpx;
 	background-color: #F5F5F5;
-	border-radius: 16rpx;
+	border-radius: 34rpx;
 	display: flex;
 	align-items: center;
 	padding: 0 24rpx;
 }
 
+.search-icon-line {
+	width: 24rpx;
+	height: 24rpx;
+	border: 3rpx solid #999999;
+	border-radius: 50%;
+	position: relative;
+	margin-right: 12rpx;
+}
+
+.search-icon-line::after {
+	content: '';
+	position: absolute;
+	right: -4rpx;
+	bottom: -4rpx;
+	width: 12rpx;
+	height: 3rpx;
+	background-color: #999999;
+	transform: rotate(45deg);
+	border-radius: 2rpx;
+}
+
+.search-input {
+	flex: 1;
+	font-size: 26rpx;
+	color: #333333;
+	height: 100%;
+	background: transparent;
+}
+
 .search-placeholder {
-	font-size: 28rpx;
+	font-size: 26rpx;
 	color: #999999;
 }
 
-.cart-icon-wrap {
+.cart-wrap {
 	position: relative;
-	margin-left: 24rpx;
-	width: 48rpx;
-	height: 48rpx;
+	width: 56rpx;
+	height: 56rpx;
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	margin-left: 16rpx;
 }
 
 .cart-icon {
-	font-size: 40rpx;
+	width: 40rpx;
+	height: 40rpx;
 }
 
 .cart-badge {
 	position: absolute;
-	top: -8rpx;
-	right: -16rpx;
-	min-width: 32rpx;
-	height: 32rpx;
+	top: -4rpx;
+	right: -12rpx;
+	min-width: 28rpx;
+	height: 28rpx;
 	background-color: #FF3333;
-	border-radius: 16rpx;
+	border-radius: 14rpx;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	padding: 0 8rpx;
+	padding: 0 6rpx;
 }
 
 .cart-badge text {
 	color: #FFFFFF;
-	font-size: 20rpx;
+	font-size: 18rpx;
 }
 
 /* 优惠插图轮播 */
@@ -404,7 +481,7 @@
 }
 
 .btn-plus {
-	background-color: #2D5A27;
+	background-color: #4f9a42;
 }
 
 .btn-plus text {
@@ -417,5 +494,91 @@
 	color: #333333;
 	width: 40rpx;
 	text-align: center;
+}
+
+/* 底部结算栏 */
+.checkout-bar {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	height: 100rpx;
+	background-color: #FFFFFF;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 24rpx;
+	box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.06);
+	z-index: 100;
+}
+
+.checkout-left {
+	display: flex;
+	align-items: center;
+}
+
+.checkout-cart-wrap {
+	position: relative;
+	width: 64rpx;
+	height: 64rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-right: 16rpx;
+}
+
+.checkout-cart-icon {
+	width: 128rpx;
+	height: 128rpx;
+}
+
+.checkout-cart-badge {
+	position: absolute;
+	top: -4rpx;
+	right: -8rpx;
+	min-width: 28rpx;
+	height: 28rpx;
+	background-color: #FF3333;
+	border-radius: 14rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 6rpx;
+}
+
+.checkout-cart-badge text {
+	color: #FFFFFF;
+	font-size: 18rpx;
+}
+
+.checkout-info {
+	display: flex;
+	flex-direction: column;
+}
+
+.checkout-count {
+	font-size: 22rpx;
+	color: #999999;
+}
+
+.checkout-total {
+	font-size: 22rpx;
+	color: #333333;
+	margin-top: 4rpx;
+}
+
+.checkout-price {
+	font-size: 28rpx;
+	font-weight: 700;
+	color: #4CAF50;
+}
+
+.checkout-btn {
+	background-color: #4f9a42;
+	color: #FFFFFF;
+	font-size: 28rpx;
+	font-weight: 600;
+	padding: 16rpx 48rpx;
+	border-radius: 40rpx;
 }
 </style>

@@ -448,10 +448,10 @@
 }
 
 .add-button {
-  width: 40rpx;
-  height: 40rpx;
-  background-color: #2D5A27;
-  border-radius: 8rpx;
+  width: 44rpx;
+  height: 44rpx;
+  background-color: #4f9a42;
+  border-radius: 22rpx;
   display: flex;
   align-items: center;
   justify-content: center;
