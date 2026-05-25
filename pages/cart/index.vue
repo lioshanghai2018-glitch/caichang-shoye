@@ -125,7 +125,9 @@ export default {
       this.isEdit = !this.isEdit
     },
     toggleSelect(index) {
-      this.cartItems[index].selected = !this.cartItems[index].selected
+      // 切换：undefined/null/false → true, true → false
+      const current = this.cartItems[index].selected
+      this.cartItems[index].selected = (current === true) ? false : true
       this.saveCart()
     },
     toggleSelectAll() {
@@ -168,8 +170,12 @@ export default {
         uni.showToast({ title: '请选择商品', icon: 'none' })
         return
       }
-      // 保存选中商品到结算页
-      const selectedItems = this.cartItems.filter(item => item.selected)
+      // 保存选中商品到结算页（兼容 selected 为 undefined 的情况）
+      const selectedItems = this.cartItems.filter(item => item.selected !== false)
+      if (selectedItems.length === 0) {
+        uni.showToast({ title: '请选择商品', icon: 'none' })
+        return
+      }
       uni.setStorageSync('checkoutItems', JSON.stringify(selectedItems))
       uni.navigateTo({ url: '/pages/checkout/index' })
     }

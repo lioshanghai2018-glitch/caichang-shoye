@@ -41,7 +41,7 @@
         </view>
         <scroll-view class="product-scroll" scroll-x="true">
           <view class="product-list">
-            <view class="product-card" v-for="item in flashSaleProducts" :key="item.id">
+            <view class="product-card" v-for="item in flashSaleProducts" :key="item.id" @tap="goProductDetail(item)">
               <image class="product-image" :src="item.image" mode="aspectFill"></image>
               <view class="product-info">
                 <text class="product-name">{{item.name}}</text>
@@ -49,7 +49,7 @@
                 <view class="price-row">
                   <text class="original-price">{{item.originalPrice}}</text>
                   <text class="current-price">{{item.currentPrice}}</text>
-                  <view class="add-button" :data-id="item.id" @tap="addToCart">
+                  <view class="add-button" :data-id="item.id" @tap.stop="addToCart">
                     <view class="add-icon"></view>
                   </view>
                 </view>

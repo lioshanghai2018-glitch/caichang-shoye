@@ -30,7 +30,7 @@
 
 		<!-- 帖子列表 -->
 		<scroll-view class="post-list" scroll-y="true">
-			<view class="post-card" v-for="post in posts" :key="post.id">
+			<view class="post-card" v-for="post in posts" :key="post.id" @tap="goPostDetail(post)">
 				<!-- 帖子头部：头像+用户名+标识+时间 -->
 				<view class="post-header">
 					<view class="avatar"></view>
@@ -167,6 +167,9 @@
 			onManage() {
 				this.menuOpen = false
 				uni.showToast({ title: '管理功能开发中', icon: 'none' })
+			},
+			goPostDetail(post) {
+				uni.navigateTo({ url: '/pages/neighbor/detail?id=' + post.id + '&title=' + encodeURIComponent(post.content.substring(0,20)) + '&author=' + encodeURIComponent(post.username) + '&time=' + encodeURIComponent(post.time) })
 			}
 		}
 	}

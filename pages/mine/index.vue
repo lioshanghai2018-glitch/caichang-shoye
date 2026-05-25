@@ -68,7 +68,7 @@
 				<text class="entry-subtitle">管理地址</text>
 			</view>
 			<!-- 优惠券 -->
-			<view class="entry-item">
+			<view class="entry-item" @tap="goCoupon">
 				<view class="entry-icon-wrap">
 					<view class="iconfont icon-youhuiquan"></view>
 				</view>
@@ -76,7 +76,7 @@
 				<text class="entry-subtitle">6张可用</text>
 			</view>
 			<!-- 客服中心 -->
-			<view class="entry-item">
+			<view class="entry-item" @tap="goService">
 				<view class="entry-icon-wrap">
 					<view class="iconfont icon-kefuzhongxin"></view>
 				</view>
@@ -95,14 +95,14 @@
 			</view>
 			<view class="option-divider"></view>
 			<!-- 浏览记录 -->
-			<view class="option-item">
+			<view class="option-item" @tap="goHistory">
 				<view class="iconfont icon-liulanjilu"></view>
 				<text class="option-text">浏览记录</text>
 				<view class="icon-arrow"></view>
 			</view>
 			<view class="option-divider"></view>
 			<!-- 邀请好友 -->
-			<view class="option-item">
+			<view class="option-item" @tap="goInvite">
 				<view class="iconfont icon-yaoqinghaoyou"></view>
 				<text class="option-text">邀请好友</text>
 				<view class="option-tag"><text>领优惠券</text></view>
@@ -110,14 +110,14 @@
 			</view>
 			<view class="option-divider"></view>
 			<!-- 关于我们 -->
-			<view class="option-item">
+			<view class="option-item" @tap="goAbout">
 				<view class="iconfont icon-guanyuwomen"></view>
 				<text class="option-text">关于我们</text>
 				<view class="icon-arrow"></view>
 			</view>
 			<view class="option-divider"></view>
 			<!-- 设置 -->
-			<view class="option-item">
+			<view class="option-item" @tap="goSettings">
 				<view class="iconfont icon-shezhi"></view>
 				<text class="option-text">设置</text>
 				<view class="icon-arrow"></view>
@@ -157,6 +157,21 @@
 			},
 			goNeighbor() {
 				uni.navigateTo({ url: '/pages/neighbor/index' })
+			},
+			goCoupon() {
+				uni.navigateTo({ url: '/pages/coupon/index' })
+			},
+			goService() {
+				uni.navigateTo({ url: '/pages/service/index' })
+			},
+			goHistory() {
+				uni.navigateTo({ url: '/pages/history/index' })
+			},
+			goInvite() {
+				uni.showToast({ title: '邀请功能开发中', icon: 'none' })
+			},
+			goSettings() {
+				uni.navigateTo({ url: '/pages/settings/index' })
 			}
 		}
 	}

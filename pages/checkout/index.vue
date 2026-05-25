@@ -107,12 +107,21 @@
 
     <!-- 配送费 -->
     <view class="card">
-      <view class="info-row">
+      <view class="info-row" @tap="toggleFeeInfo">
         <view class="info-left">
           <text class="info-icon">🚚</text>
           <text class="info-title">{{ deliveryType === 'self' ? '自提费' : '配送费' }}</text>
         </view>
-        <text class="info-right">¥{{ deliveryFee }}</text>
+        <view class="info-right-with-arrow">
+          <text class="info-right">¥{{ computedDeliveryFee }}</text>
+          <text class="info-arrow">{{ showFeeInfo ? '∧' : '∨' }}</text>
+        </view>
+      </view>
+      <view class="fee-rules" v-if="showFeeInfo">
+        <view class="fee-rule-item"><text class="fee-rule-dot">•</text><text class="fee-rule-text">今日自提：免配送费</text></view>
+        <view class="fee-rule-item"><text class="fee-rule-dot">•</text><text class="fee-rule-text">明日自提：免配送费</text></view>
+        <view class="fee-rule-item"><text class="fee-rule-dot">•</text><text class="fee-rule-text">明日配送：免配送费</text></view>
+        <view class="fee-rule-item"><text class="fee-rule-dot">•</text><text class="fee-rule-text">今日配送：¥2.00（订单≥¥20时免配送费）</text></view>
       </view>
     </view>
 
@@ -149,6 +158,7 @@
 </template>
 
 <script>
+import { addOrder } from '@/utils/order.js'
 export default {
   data() {
     return {
@@ -159,29 +169,13 @@ export default {
       discount: 0,
       deliveryFee: '0.00',
       remark: '',
-      selectedProducts: [
-        {
-          name: '有机西红柿',
-          spec: '约500g/份',
-          originalPrice: '20.00',
-          currentPrice: '15.80',
-          qty: 2,
-          image: '/static/images/product_tomato.png'
-        },
-        {
-          name: '小青菜',
-          spec: '约300g/份',
-          originalPrice: '9.00',
-          currentPrice: '6.50',
-          qty: 1,
-          image: '/static/images/product_qingcai.png'
-        }
-      ],
+      showFeeInfo: false,
+      selectedProducts: [],
       addOnProducts: [
-        { name: '有机西红柿', spec: '约500g', originalPrice: '12', currentPrice: '9.9', checked: false, image: '/static/images/addon_tomato.png' },
-        { name: '土鸡蛋', spec: '10枚/盒', originalPrice: '16', currentPrice: '12.9', checked: false, image: '/static/images/addon_egg.png' },
-        { name: '小青菜', spec: '约300g', originalPrice: '8', currentPrice: '5.9', checked: false, image: '/static/images/addon_qingcai.png' },
-        { name: '新鲜豆腐', spec: '约400g', originalPrice: '9', currentPrice: '6.9', checked: false, image: '/static/images/addon_doufu.png' }
+        { name: '有机西红柿', spec: '500g/份', originalPrice: '12.8', currentPrice: '8.8', checked: false, image: '/static/images/有机西红柿.png' },
+        { name: '新鲜鸡蛋', spec: '10枚/盒', originalPrice: '15.0', currentPrice: '9.9', checked: false, image: '/static/images/新鲜鸡蛋.png' },
+        { name: '有机青菜', spec: '300g/份', originalPrice: '6.0', currentPrice: '3.8', checked: false, image: '/static/images/有机青菜.png' },
+        { name: '胡萝卜', spec: '400g/份', originalPrice: '5.0', currentPrice: '2.9', checked: false, image: '/static/images/胡萝卜.png' }
       ]
     }
   },
@@ -194,15 +188,68 @@ export default {
       this.addOnProducts.forEach(p => {
         if (p.checked) total += parseFloat(p.currentPrice)
       })
-      total += parseFloat(this.deliveryFee)
+      total += parseFloat(this.computedDeliveryFee)
       return total.toFixed(1)
+    },
+    computedDeliveryFee() {
+      if (this.deliveryType === 'self') return '0.00'
+      if (this.timeType === 'today' && this.deliveryType === 'delivery') {
+        const goodsTotal = this.selectedProducts.reduce((sum, p) => sum + parseFloat(p.currentPrice) * p.qty, 0)
+        return goodsTotal >= 20 ? '0.00' : '2.00'
+      }
+      return '0.00'
     }
+  },
+  onLoad() {
+    const raw = uni.getStorageSync("checkoutItems");
+    const arr = [];
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        parsed.forEach(p => {
+          const orig = p.originalPrice ? String(p.originalPrice).replace("¥", "") : null;
+          const curr = String(p.currentPrice || p.originalPrice || "0").replace("¥", "");
+          arr.push({
+            name: p.name || "未知商品",
+            spec: p.spec || p.desc || "",
+            image: p.image || "",
+            originalPrice: (orig && orig !== "null" && orig !== "") ? orig : curr,
+            currentPrice: curr,
+            qty: p.quantity || p.qty || 1,
+          });
+        });
+      }
+    }
+    this.selectedProducts = arr;
+  },
+  onShow() {
+    const raw = uni.getStorageSync("checkoutItems");
+    const arr = [];
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        parsed.forEach(p => {
+          const orig = p.originalPrice ? String(p.originalPrice).replace("¥", "") : null;
+          const curr = String(p.currentPrice || p.originalPrice || "0").replace("¥", "");
+          arr.push({
+            name: p.name || "未知商品",
+            spec: p.spec || p.desc || "",
+            image: p.image || "",
+            originalPrice: (orig && orig !== "null" && orig !== "") ? orig : curr,
+            currentPrice: curr,
+            qty: p.quantity || p.qty || 1,
+          });
+        });
+      }
+    }
+    this.selectedProducts = arr;
   },
   methods: {
     goBack() { uni.navigateBack() },
     selectAddress() { uni.navigateTo({ url: '/pages/address/index' }) },
     switchDelivery(type) { this.deliveryType = type },
     switchTime(time) { this.timeType = time },
+    toggleFeeInfo() { this.showFeeInfo = !this.showFeeInfo },
     pickTime() {
       uni.showActionSheet({
         itemList: ['上午 9:00-12:00', '下午 14:00-18:00'],
@@ -239,7 +286,91 @@ export default {
         }
       });
     },
-    handlePay() { uni.showToast({ title: '付款功能开发中', icon: 'none' }) }
+    handlePay() {
+      if (this.selectedProducts.length === 0) {
+        uni.showToast({ title: '请选择商品', icon: 'none' })
+        return
+      }
+      if (!this.selectedAddress || !this.selectedAddress.address) {
+        uni.showToast({ title: '请选择收货地址', icon: 'none' })
+        return
+      }
+      uni.showModal({
+        title: '选择付款结果',
+        content: '请选择模拟付款状态',
+        cancelText: '付款成功',
+        confirmText: '付款失败',
+        success: (res) => {
+          if (res.cancel) {
+            // 模拟付款成功
+            this.doPaySuccess()
+          } else if (res.confirm) {
+            // 模拟付款失败
+            this.doPaySuccess('待支付')
+          }
+        }
+      })
+    },
+    doPaySuccess(orderStatus) {
+      orderStatus = orderStatus || '配送中'
+      const newOrder = {
+        id: 'ORD' + Date.now(),
+        shortId: String(Date.now()).slice(-4),
+        fullId: String(Date.now()),
+        status: orderStatus,
+        deliveryTime: this.selectedTime,
+        payMethod: '微信支付',
+        packFee: '¥0.50',
+        deliveryFee: '¥' + this.computedDeliveryFee,
+        coupon: '¥0',
+        orderTime: (() => {
+          const d = new Date()
+          const y = d.getFullYear()
+          const mo = String(d.getMonth() + 1).padStart(2, '0')
+          const da = String(d.getDate()).padStart(2, '0')
+          const h = d.getHours()
+          const mi = String(d.getMinutes()).padStart(2, '0')
+          const ampm = h < 12 ? '上午' : '下午'
+          const h12 = h === 0 ? 12 : (h > 12 ? h - 12 : h)
+          return `${y}.${mo}.${da}${ampm}${h12}:${mi}`
+        })(),
+        address: {
+          name: this.selectedAddress ? (this.selectedAddress.name || '邻居') : '请选择地址',
+          phone: this.selectedAddress ? (this.selectedAddress.phone || '') : '',
+          address: this.selectedAddress ? (this.selectedAddress.address || '') : '',
+          doorNo: this.selectedAddress ? (this.selectedAddress.doorNo || '') : ''
+        },
+        remark: this.remark || '',
+        total: this.totalPayable,
+        actionBtn: '查看详情',
+        expanded: false,
+        products: this.selectedProducts.map(p => ({
+          name: p.name,
+          spec: p.spec,
+          price: p.currentPrice,
+          qty: p.qty,
+          image: p.image,
+          originalPrice: p.originalPrice !== p.currentPrice ? p.originalPrice : undefined
+        })).concat(
+          this.addOnProducts.filter(a => a.checked).map(a => ({
+            name: a.name,
+            spec: a.spec,
+            price: a.currentPrice,
+            qty: 1,
+            image: a.image,
+            originalPrice: a.originalPrice !== a.currentPrice ? a.originalPrice : undefined
+          }))
+        )
+      }
+      addOrder(newOrder)
+      // 清空购物车和结算项
+      uni.removeStorageSync('cartItems')
+      uni.removeStorageSync('checkoutItems')
+      uni.showToast({ title: '付款成功', icon: 'success' })
+      setTimeout(() => {
+        uni.switchTab({ url: '/pages/order/index' })
+      }, 1500)
+    }
   }
 }
 </script>
@@ -608,6 +739,41 @@ page {
 .info-right {
   font-size: 26rpx;
   color: #999;
+}
+
+.info-right-with-arrow {
+  display: flex;
+  align-items: center;
+}
+
+.info-arrow {
+  font-size: 24rpx;
+  color: #999;
+  margin-left: 8rpx;
+}
+
+.fee-rules {
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #F0F0F0;
+}
+
+.fee-rule-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 10rpx;
+}
+
+.fee-rule-dot {
+  color: #4F9A42;
+  margin-right: 8rpx;
+  font-size: 26rpx;
+}
+
+.fee-rule-text {
+  font-size: 24rpx;
+  color: #666;
+  line-height: 1.4;
 }
 
 .info-link {

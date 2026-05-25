@@ -54,10 +54,7 @@
 							<text class="info-label">支付方式</text>
 							<text class="info-value">{{order.payMethod}}</text>
 						</view>
-						<view class="info-row">
-							<text class="info-label">打包费</text>
-							<text class="info-value">{{order.packFee}}</text>
-						</view>
+
 						<view class="info-row">
 							<text class="info-label">配送费</text>
 							<text class="info-value">{{order.deliveryFee}}</text>
@@ -72,7 +69,7 @@
 						</view>
 						<view class="info-row">
 							<text class="info-label">收货地址</text>
-							<text class="info-value address">{{order.address}}</text>
+							<text class="info-value address">{{order.address.phone}} {{order.address.address}}{{order.address.doorNo}}</text>
 						</view>
 						<view class="info-row" v-if="order.remark">
 							<text class="info-label">备注</text>
@@ -84,8 +81,12 @@
 				<!-- 底部：总价 + 按钮 -->
 				<view class="order-footer">
 					<text class="total-text">实付 <text class="total-price">¥{{order.total}}</text></text>
-					<view class="action-btn">
-						<text>{{order.actionBtn}}</text>
+					<view class="footer-btns" v-if="order.status === '待支付' || order.status === 'pending'">
+						<view class="action-btn" @tap="goPay(order)"><text>去付款</text></view>
+						<view class="action-btn cancel" @tap="cancelOrder(order)"><text>取消订单</text></view>
+					</view>
+					<view class="footer-btns" v-else>
+						<view class="action-btn cancel" @tap="cancelOrder(order)"><text>取消订单</text></view>
 					</view>
 				</view>
 			</view>
@@ -127,12 +128,8 @@
 							<text class="fee-value">{{order.payMethod}}</text>
 						</view>
 						<view class="fee-row">
-							<text class="fee-label">打包费</text>
-							<text class="fee-value">{{order.packFee}}</text>
-						</view>
-						<view class="fee-row">
 							<text class="fee-label">配送费</text>
-							<text class="fee-value">{{order.deliveryFee}}</text>
+							<text class="fee-value">{{order.deliveryFee || '¥0.00'}}</text>
 						</view>
 						<view class="fee-row total-fee-row">
 							<text class="fee-label">实付</text>
@@ -157,7 +154,7 @@
 						</view>
 						<view class="info-row">
 							<text class="info-label">收货地址</text>
-							<text class="info-value address">{{order.address}}</text>
+							<text class="info-value address">{{order.address.phone}} {{order.address.address}}{{order.address.doorNo}}</text>
 						</view>
 					</view>
 				</view>
@@ -173,7 +170,7 @@
 							<text>再来一单</text>
 						</view>
 					</view>
-				</view>
+					</view>
 			</view>
 		</scroll-view>
 		<custom-tabbar :current="2" />
@@ -256,7 +253,22 @@
 				]
 			}
 		},
+		onShow() {
+			this.syncOrders()
+		},
 		methods: {
+			syncOrders() {
+				try {
+					const data = uni.getStorageSync('order_list')
+					if (data) {
+						const list = JSON.parse(data)
+						if (Array.isArray(list) && list.length > 0) {
+							this.currentOrders = list.filter(o => o.status === '配送中' || o.status === '待支付' || o.status === 'pending')
+							this.historyOrders = list.filter(o => o.status === '已完成' || o.status === '已取消')
+						}
+					}
+				} catch (e) {}
+			},
 			switchTab(index) {
 				this.currentTab = index
 			},
@@ -273,6 +285,28 @@
 			},
 			makeCall() {
 				uni.makePhoneCall({ phoneNumber: '10086' })
+			},
+			goPay(order) {
+				uni.showToast({ title: '去付款功能开发中', icon: 'none' })
+			},
+			cancelOrder(order) {
+				uni.showModal({
+					title: '确认取消',
+					content: '确定要取消该订单吗？',
+					success: (res) => {
+						if (res.confirm) {
+							order.status = '已取消'
+							const list = uni.getStorageSync('order_list') ? JSON.parse(uni.getStorageSync('order_list')) : []
+							const idx = list.findIndex(o => o.id === order.id)
+							if (idx > -1) {
+								list[idx].status = '已取消'
+								uni.setStorageSync('order_list', JSON.stringify(list))
+							}
+							this.syncOrders()
+							uni.showToast({ title: '订单已取消', icon: 'none' })
+						}
+					}
+				})
 			},
 			afterSale() {
 				uni.showToast({ title: '申请售后', icon: 'none' })
@@ -649,8 +683,15 @@
 	color: #FFFFFF;
 }
 
-.info-value.coupon {
-	color: #FF3333;
-	font-weight: 600;
+.action-btn.cancel {
+	background-color: #FFFFFF;
+	border: 2rpx solid #999;
+}
+.action-btn.cancel text {
+	color: #666;
+}
+.footer-btns {
+	display: flex;
+	gap: 16rpx;
 }
 </style>

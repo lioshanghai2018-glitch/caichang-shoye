@@ -10,7 +10,7 @@
 				<view class="search-icon-line"></view>
 				<input class="search-input" type="text" placeholder="搜索商品" placeholder-class="search-placeholder" />
 			</view>
-				<view class="cart-wrap">
+				<view class="cart-wrap" @tap="goCart">
 					<view class="iconfont icon-gouwuche cart-icon"></view>
 					<view class="cart-badge" v-if="cartCount > 0">
 						<text>{{cartCount}}</text>
@@ -78,7 +78,7 @@
 
 		<!-- 底部结算栏 -->
 		<view class="checkout-bar" v-if="selectedCount > 0">
-			<view class="checkout-left">
+			<view class="checkout-left" @tap="goCart">
 				<view class="checkout-cart-wrap">
 					<image class="checkout-cart-icon" src="/static/images/gouwuche.png" mode="aspectFit"></image>
 					<view class="checkout-cart-badge">
@@ -160,6 +160,9 @@
 				]
 			}
 		},
+		onShow() {
+			this.syncCart();
+		},
 		methods: {
 			selectCategory(index) {
 				this.currentCategory = index
@@ -187,6 +190,25 @@
 				this.selectedCount = count;
 				this.selectedTotal = total.toFixed(2);
 				this.cartCount = count;
+			},
+			syncCart() {
+				const items = uni.getStorageSync("cartItems");
+				if (items) {
+					const parsed = JSON.parse(items);
+					this.products.forEach(p => {
+						const cartItem = parsed.find(c => c.name === p.name);
+						p.quantity = cartItem ? (cartItem.quantity || 0) : 0;
+					});
+					this.updateCart();
+				} else {
+					this.products.forEach(p => p.quantity = 0);
+					this.cartCount = 0;
+					this.selectedCount = 0;
+					this.selectedTotal = "0.00";
+				}
+			},
+			goCart() {
+				uni.navigateTo({ url: "/pages/cart/index" });
 			},
 			goCheckout() {
 				// 保存已选商品到 localStorage，供购物车页面使用
