@@ -49,26 +49,32 @@
 			</scroll-view>
 
 			<!-- 右侧商品列表 -->
-			<scroll-view class="product-area" scroll-y="true">
-				<view class="product-item" v-for="item in products" :key="item.id">
-					<image class="product-img" :src="item.image" mode="aspectFill"></image>
-					<view class="product-detail">
-						<text class="product-name">{{item.name}}</text>
-						<text class="product-desc">{{item.desc}}</text>
-						<view class="product-service-tag">
-							<text>{{item.service}}</text>
-						</view>
-						<view class="price-row">
-							<text class="original-price">{{item.originalPrice}}</text>
-							<text class="current-price">{{item.currentPrice}}</text>
-						</view>
-						<view class="quantity-control">
-							<view class="btn-minus" v-if="item.quantity > 0" @tap="decrease(item)">
-								<view class="minus-icon"></view>
+			<scroll-view class="product-area" scroll-y="true" :scroll-into-view="scrollIntoViewId" @scroll="onScroll">
+				<!-- 商品列表（含分类标题） -->
+				<view v-for="(item, index) in productsWithHeader" :key="index">
+					<view v-if="item.isHeader" class="category-header" :id="'cat-header-' + index">
+						<text>{{item.categoryName}}</text>
+					</view>
+					<view v-else class="product-item">
+						<image class="product-img" :src="item.image" mode="aspectFill"></image>
+						<view class="product-detail">
+							<text class="product-name">{{item.name}}</text>
+							<text class="product-desc">{{item.desc}}</text>
+							<view class="product-service-tag">
+								<text>{{item.service}}</text>
 							</view>
-							<text class="quantity-num" v-if="item.quantity > 0">{{item.quantity}}</text>
-							<view class="btn-plus" @tap="increase(item)">
-								<view class="add-icon"></view>
+							<view class="price-row">
+								<text class="original-price">{{item.originalPrice}}</text>
+								<text class="current-price">{{item.currentPrice}}</text>
+							</view>
+							<view class="quantity-control">
+								<view class="btn-minus" v-if="item.quantity > 0" @tap="decrease(item)">
+									<view class="minus-icon"></view>
+								</view>
+								<text class="quantity-num" v-if="item.quantity > 0">{{item.quantity}}</text>
+								<view class="btn-plus" @tap="increase(item)">
+									<view class="add-icon"></view>
+								</view>
 							</view>
 						</view>
 					</view>
@@ -100,14 +106,64 @@
 
 <script>
 	export default {
-		data() {
+		data: function() {
 			return {
 				currentCategory: 0,
 				currentPromo: 0,
-				cartCount: 3,
-				selectedCount: 3,
-				selectedTotal: '12.16',
-				categories: [
+				cartCount: 0,
+				selectedCount: 0,
+				selectedTotal: '0.00',
+				categories: [],
+				productsLoading: false,
+				products: [],
+				scrollTop: 0,
+				scrollIntoViewId: ''
+			};
+		},
+		computed: {
+			productsWithHeader: function() {
+				var result = [];
+				var lastCatName = '';
+				for (var i = 0; i < this.products.length; i++) {
+					var p = this.products[i];
+					if (p.categoryName !== lastCatName && p.categoryName) {
+						result.push({ isHeader: true, categoryName: p.categoryName });
+						lastCatName = p.categoryName;
+					}
+					result.push(p);
+				}
+				return result;
+			}
+		},
+		onLoad: function() {
+			this.loadCategories();
+		},
+		onShow: function() {
+			this.syncCart();
+		},
+		methods: {
+			loadCategories: function() {
+				var self = this;
+				uni.request({
+					url: 'https://fc-mp-ae9bd108-da40-4ae6-923b-c3007dedec12.next.bspapp.com/merchant-api/getCategories',
+					method: 'POST',
+					data: { method: 'getCategories', params: {} },
+					success: function(res) {
+						if (res.data && res.data.code === 0 && res.data.data && res.data.data.length > 0) {
+							self.categories = res.data.data;
+						} else {
+							self.setDefaultCategories();
+						}
+						self.loadAllProducts();
+					},
+					fail: function(e) {
+						console.error('获取分类失败:', e);
+						self.setDefaultCategories();
+					}
+				});
+			},
+			setDefaultCategories: function() {
+				this.categories = [
 					{ name: '叶菜类' },
 					{ name: '茄果类' },
 					{ name: '瓜果类' },
@@ -115,119 +171,201 @@
 					{ name: '根茎类' },
 					{ name: '豆制品' },
 					{ name: '肉禽蛋' }
-				],
-				products: [
-					{
-						id: 1,
-						name: '上海青 约500g',
-						desc: '新鲜直采·产地直发',
-						service: '当日下单·次日自提',
-						originalPrice: '¥2.99',
-						currentPrice: '¥2.19',
-						image: '/static/images/胡萝卜.png',
-						quantity: 1
-					},
-					{
-						id: 2,
-						name: '西红柿 约500g',
-						desc: '自然成熟·酸甜可口',
-						service: '当日下单·次日自提',
-						originalPrice: '¥3.99',
-						currentPrice: '¥2.99',
-						image: '/static/images/有机西红柿.png',
-						quantity: 0
-					},
-					{
-						id: 3,
-						name: '土鸡蛋 10枚',
-						desc: '农家散养·营养健康',
-						service: '当日下单·次日自提',
-						originalPrice: '¥8.90',
-						currentPrice: '¥6.90',
-						image: '/static/images/新鲜鸡蛋.png',
-						quantity: 0
-					},
-					{
-						id: 4,
-						name: '红富士苹果 约1kg',
-						desc: '脆甜多汁·新鲜采摘',
-						service: '当日下单·次日自提',
-						originalPrice: '¥6.98',
-						currentPrice: '¥4.98',
-						image: '/static/images/有机青菜.png',
-						quantity: 0
+				];
+			},
+			onScroll: function(e) {
+				// 如果刚点击了分类，暂时不更新高亮，避免滚动过程中误触发
+				if (this._skipScrollHighlight) return;
+				var self = this;
+				uni.createSelectorQuery()
+					.in(self)
+					.selectAll('.category-header')
+					.boundingClientRect(function(rects) {
+						if (!rects || rects.length === 0) return;
+						var curCatName = null;
+						for (var i = 0; i < rects.length; i++) {
+							// 找到第一个进入可视区域顶部的标题
+							if (rects[i].top >= 0) {
+								curCatName = self.categories[i]?.name;
+								break;
+							}
+						}
+						// 如果都没找到（滚动到底），用最后一个
+						if (!curCatName) {
+							curCatName = self.categories[rects.length - 1]?.name;
+						}
+						if (curCatName) {
+							var catIndex = self.categories.findIndex(function(c) { return c.name === curCatName; });
+							if (catIndex !== -1 && catIndex !== self.currentCategory) {
+								self.currentCategory = catIndex;
+							}
+						}
+					})
+					.exec();
+			},
+			selectCategory: function(index) {
+				this.currentCategory = index;
+				// 跳过滚动高亮更新，持续2秒
+				this._skipScrollHighlight = true;
+				var self = this;
+				setTimeout(function() { self._skipScrollHighlight = false; }, 2000);
+				var catName = this.categories[index] ? this.categories[index].name : null;
+				// 找到对应的分类标题在 productsWithHeader 中的位置
+				var items = this.productsWithHeader;
+				var headerIndex = -1;
+				for (var i = 0; i < items.length; i++) {
+					if (items[i].isHeader && items[i].categoryName === catName) {
+						headerIndex = i;
+						break;
 					}
-				]
-			}
-		},
-		onShow() {
-			this.syncCart();
-		},
-		methods: {
-			selectCategory(index) {
-				this.currentCategory = index
+				}
+				console.log('点击分类:', catName, '标题索引:', headerIndex);
+				if (headerIndex >= 0) {
+					var targetId = 'cat-header-' + headerIndex;
+					// 先清空，再延迟设置，确保触发滚动
+					this.scrollIntoViewId = '';
+					var self = this;
+					setTimeout(function() {
+						self.scrollIntoViewId = targetId;
+					}, 50);
+				}
 			},
-			onPromoChange(e) {
-				this.currentPromo = e.detail.current
+			loadAllProducts: function() {
+				var self = this;
+				this.productsLoading = true;
+				uni.request({
+					url: 'https://fc-mp-ae9bd108-da40-4ae6-923b-c3007dedec12.next.bspapp.com/merchant-api/getProducts',
+					method: 'POST',
+					data: {
+						method: 'getProducts',
+						params: { status: true }
+					},
+					success: function(res) {
+						if (res.data && res.data.code === 0) {
+							self.products = res.data.data.map(function(item) {
+								return {
+									id: item._id,
+									name: item.name,
+									categoryId: String(item.categoryId || ''),
+									categoryName: item.categoryName || '',
+									desc: item.description || '新鲜直采·产地直发',
+									service: '当日下单·次日自提',
+									originalPrice: '¥' + ((item.specs && item.specs[0] ? item.specs[0].price : 0) * 1.5).toFixed(1),
+									currentPrice: '¥' + (item.specs && item.specs[0] ? item.specs[0].price : 0),
+									image: (item.images && item.images[0]) ? item.images[0] : '/static/images/placeholder.png',
+									quantity: 0
+								};
+							});
+							// 按左侧分类栏顺序排序商品
+							var categoryOrder = self.categories.map(function(c) { return c.name; });
+							self.products.sort(function(a, b) {
+								var aIndex = categoryOrder.indexOf(a.categoryName);
+								var bIndex = categoryOrder.indexOf(b.categoryName);
+								if (aIndex === -1 && bIndex === -1) return 0;
+								if (aIndex === -1) return 1;
+								if (bIndex === -1) return -1;
+								return aIndex - bIndex;
+							});
+							console.log('排序后商品:', self.products.map(function(p) { return p.categoryName + ':' + p.name; }).join(', '));
+							console.log('加载商品成功，共', self.products.length, '个');
+							// 手动构建 productsWithHeader 看长度
+							var result = [];
+							var lastCatName = '';
+							for (var i = 0; i < self.products.length; i++) {
+								var p = self.products[i];
+								if (p.categoryName !== lastCatName && p.categoryName) {
+									result.push({ isHeader: true, categoryName: p.categoryName });
+									lastCatName = p.categoryName;
+								}
+								result.push(p);
+							}
+							console.log('productsWithHeader 长度:', result.length);
+							self.syncCart();
+						}
+					},
+					fail: function(e) {
+						console.error('加载商品失败:', e);
+					},
+					complete: function() {
+						self.productsLoading = false;
+					}
+				});
 			},
-			increase(item) {
-				item.quantity++
-				this.updateCart()
+			onPromoChange: function(e) {
+				this.currentPromo = e.detail.current;
 			},
-			decrease(item) {
-				if (item.quantity > 0) item.quantity--
-				this.updateCart()
+			increase: function(item) {
+				item.quantity++;
+				this.updateCart();
 			},
-			updateCart() {
-				let count = 0;
-				let total = 0;
-				this.products.forEach(p => {
+			decrease: function(item) {
+				if (item.quantity > 0) item.quantity--;
+				this.updateCart();
+			},
+			updateCart: function() {
+				var count = 0;
+				var total = 0;
+				var self = this;
+				this.products.forEach(function(p) {
 					if (p.quantity > 0) {
 						count += p.quantity;
-						total += p.quantity * parseFloat(p.currentPrice.replace('¥', ''));
+						var price = parseFloat(p.currentPrice.replace('¥', ''));
+						total += p.quantity * price;
 					}
 				});
 				this.selectedCount = count;
 				this.selectedTotal = total.toFixed(2);
 				this.cartCount = count;
 			},
-			syncCart() {
-				const items = uni.getStorageSync("cartItems");
+			syncCart: function() {
+				var items = uni.getStorageSync("cartItems");
+				var self = this;
 				if (items) {
-					const parsed = JSON.parse(items);
-					this.products.forEach(p => {
-						const cartItem = parsed.find(c => c.name === p.name);
+					var parsed = JSON.parse(items);
+					this.products.forEach(function(p) {
+						var cartItem = null;
+						for (var i = 0; i < parsed.length; i++) {
+							if (parsed[i].name === p.name) {
+								cartItem = parsed[i];
+								break;
+							}
+						}
 						p.quantity = cartItem ? (cartItem.quantity || 0) : 0;
 					});
 					this.updateCart();
 				} else {
-					this.products.forEach(p => p.quantity = 0);
+					this.products.forEach(function(p) {
+						p.quantity = 0;
+					});
 					this.cartCount = 0;
 					this.selectedCount = 0;
 					this.selectedTotal = "0.00";
 				}
 			},
-			goCart() {
+			goCart: function() {
 				uni.navigateTo({ url: "/pages/cart/index" });
 			},
-			goCheckout() {
-				// 保存已选商品到 localStorage，供购物车页面使用
-				const selectedProducts = this.products.filter(p => p.quantity > 0).map(p => ({
-					name: p.name,
-					spec: p.desc,
-					image: p.image,
-					currentPrice: p.currentPrice,
-					originalPrice: p.originalPrice,
-					quantity: p.quantity,
-					selected: true
-				}))
+			goCheckout: function() {
+				var selectedProducts = this.products.filter(function(p) {
+					return p.quantity > 0;
+				}).map(function(p) {
+					return {
+						name: p.name,
+						spec: p.desc,
+						image: p.image,
+						currentPrice: p.currentPrice,
+						originalPrice: p.originalPrice,
+						quantity: p.quantity,
+						selected: true
+					};
+				});
 				if (selectedProducts.length > 0) {
-					uni.setStorageSync('cartItems', JSON.stringify(selectedProducts))
+					uni.setStorageSync('cartItems', JSON.stringify(selectedProducts));
 				}
-				uni.navigateTo({ url: "/pages/cart/index" })
+				uni.navigateTo({ url: "/pages/cart/index" });
 			}
-	}
-}
+		}
+	};
 </script>
 
 <style>
@@ -421,6 +559,17 @@
 	flex: 1;
 	height: 100%;
 	padding: 16rpx 24rpx;
+	padding-bottom: 220rpx;
+	box-sizing: border-box;
+}
+
+.category-header {
+	font-size: 28rpx;
+	font-weight: 600;
+	color: #333;
+	padding: 20rpx 0 16rpx;
+	border-bottom: 1rpx solid #f0f0f0;
+	margin-bottom: 16rpx;
 }
 
 .product-item {

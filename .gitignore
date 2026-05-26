@@ -3,3 +3,4 @@ unpackage/
 .DS_Store
 *.log
 0merchant-web/
+uniCloud-aliyun/cloudfunctions/

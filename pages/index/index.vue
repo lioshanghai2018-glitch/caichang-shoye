@@ -30,7 +30,7 @@
     </view>
 
     <!-- 卡片2：限时特惠 -->
-    <view class="card">
+    <view class="card" v-if="flashSaleProducts.length > 0">
       <view class="flash-sale-section">
         <view class="section-header">
           <text class="section-title">限时特惠</text>
@@ -41,7 +41,7 @@
         </view>
         <scroll-view class="product-scroll" scroll-x="true">
           <view class="product-list">
-            <view class="product-card" v-for="item in flashSaleProducts" :key="item.id" @tap="goProductDetail(item)">
+            <view class="product-card" v-for="item in flashSaleProducts" :key="item.id">
               <image class="product-image" :src="item.image" mode="aspectFill"></image>
               <view class="product-info">
                 <text class="product-name">{{item.name}}</text>
@@ -49,8 +49,14 @@
                 <view class="price-row">
                   <text class="original-price">{{item.originalPrice}}</text>
                   <text class="current-price">{{item.currentPrice}}</text>
-                  <view class="add-button" :data-id="item.id" @tap.stop="addToCart">
-                    <view class="add-icon"></view>
+                  <view class="quantity-inline">
+                    <view class="btn-minus" v-if="item.quantity > 0" @tap.stop="decreaseFromFlash(item)">
+                      <view class="minus-icon"></view>
+                    </view>
+                    <text class="quantity-num" v-if="item.quantity > 0">{{item.quantity}}</text>
+                    <view class="btn-plus" @tap.stop="addToCart(item)">
+                      <view class="add-icon"></view>
+                    </view>
                   </view>
                 </view>
               </view>
@@ -82,6 +88,26 @@
     <view class="brand-section">
       <image class="brand-logo" src="/static/images/logo.png" mode="aspectFit"></image>
     </view>
+
+    <!-- 底部结算栏 -->
+    <view class="checkout-bar" v-if="selectedCount > 0">
+      <view class="checkout-left" @tap="goCart">
+        <view class="checkout-cart-wrap">
+          <image class="checkout-cart-icon" src="/static/images/gouwuche.png" mode="aspectFit"></image>
+          <view class="checkout-cart-badge">
+            <text>{{selectedCount}}</text>
+          </view>
+        </view>
+        <view class="checkout-info">
+          <text class="checkout-count">已选{{selectedCount}}件商品</text>
+          <text class="checkout-total">合计：<text class="checkout-price">¥{{selectedTotal}}</text></text>
+        </view>
+      </view>
+      <view class="checkout-btn" @tap="goCheckout">
+        <text>去结算</text>
+      </view>
+    </view>
+
     <custom-tabbar :current="0" />
   </view>
 </template>
@@ -115,40 +141,11 @@
           }
         ],
 
-        flashSaleProducts: [
-          {
-            id: 1,
-            name: '有机西红柿',
-            weight: '500g/份',
-            originalPrice: '¥12.8',
-            currentPrice: '¥8.8',
-            image: '/static/images/有机西红柿.png'
-          },
-          {
-            id: 2,
-            name: '新鲜鸡蛋',
-            weight: '10枚/盒',
-            originalPrice: '¥15.0',
-            currentPrice: '¥9.9',
-            image: '/static/images/新鲜鸡蛋.png'
-          },
-          {
-            id: 3,
-            name: '有机青菜',
-            weight: '300g/份',
-            originalPrice: '¥6.0',
-            currentPrice: '¥3.8',
-            image: '/static/images/有机青菜.png'
-          },
-          {
-            id: 4,
-            name: '胡萝卜',
-            weight: '400g/份',
-            originalPrice: '¥5.0',
-            currentPrice: '¥2.9',
-            image: '/static/images/胡萝卜.png'
-          }
-        ],
+        flashSaleLoading: false,
+        flashSaleProducts: [],
+        flashSaleEndTime: null,
+        selectedCount: 0,
+        selectedTotal: '0.00',
 
         groupTitle: '新鲜好菜 团购更优惠',
         groupSubtitle: '当日下单·次日自提',
@@ -158,6 +155,11 @@
 
     onLoad() {
       this.startCountdown();
+      this.loadFlashSaleProducts();
+    },
+
+    onShow() {
+      this.syncAllCart();
     },
 
     onUnload() {
@@ -167,21 +169,80 @@
     },
 
     methods: {
-      startCountdown() {
-        let totalSeconds = 2 * 3600 + 59 * 60 + 59;
+      async loadFlashSaleProducts() {
+        this.flashSaleLoading = true;
+        try {
+          // 获取特惠活动信息
+          const saleRes = await uni.request({
+            url: 'https://fc-mp-ae9bd108-da40-4ae6-923b-c3007dedec12.next.bspapp.com/merchant-api/getFlashSale',
+            method: 'POST',
+            data: { method: 'getFlashSale', params: {} }
+          });
 
-        this.countdownTimer = setInterval(() => {
-          if (totalSeconds > 0) {
-            totalSeconds--;
-            const hours = Math.floor(totalSeconds / 3600);
-            const minutes = Math.floor((totalSeconds % 3600) / 60);
-            const seconds = totalSeconds % 60;
+          // 检查活动是否存在且启用
+          if (saleRes.data?.code === 0 && saleRes.data.data) {
+            const sale = saleRes.data.data;
+            const now = Date.now();
 
-            const countdownText = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-            this.countdown = countdownText;
-          } else {
-            totalSeconds = 2 * 3600 + 59 * 60 + 59;
+            // 检查活动是否启用且未过期
+            if (sale.status === true && sale.endTime > now) {
+              this.flashSaleEndTime = sale.endTime;
+              this.startCountdown();
+
+              // 获取特惠商品列表
+              const productRes = await uni.request({
+                url: 'https://fc-mp-ae9bd108-da40-4ae6-923b-c3007dedec12.next.bspapp.com/merchant-api/getFlashSaleProducts',
+                method: 'POST',
+                data: { method: 'getFlashSaleProducts', params: { active: true } }
+              });
+
+              if (productRes.data?.code === 0) {
+                this.flashSaleProducts = productRes.data.data.map(item => ({
+                  id: item._id,
+                  name: item.name,
+                  image: item.image || '/static/images/placeholder.png',
+                  weight: item.specs?.[0]?.name || '',
+                  originalPrice: '¥' + item.originalPrice,
+                  currentPrice: '¥' + item.flashPrice,
+                  quantity: 0
+                }));
+                this.syncFlashSaleCart();
+              }
+              this.flashSaleLoading = false;
+              return;
+            }
           }
+          // 没有进行中的特惠活动
+          this.flashSaleProducts = [];
+          this.flashSaleEndTime = null;
+          if (this.countdownTimer) {
+            clearInterval(this.countdownTimer);
+          }
+          this.countdown = '00:00:00';
+        } catch (e) {
+          console.error('加载限时特惠商品失败:', e);
+        } finally {
+          this.flashSaleLoading = false;
+        }
+      },
+
+      startCountdown() {
+        if (this.countdownTimer) {
+          clearInterval(this.countdownTimer);
+        }
+        this.countdownTimer = setInterval(() => {
+          const now = Date.now();
+          const remaining = this.flashSaleEndTime - now;
+          if (remaining <= 0) {
+            this.countdown = '00:00:00';
+            this.loadFlashSaleProducts(); // 刷新商品列表
+            return;
+          }
+          const totalSeconds = Math.floor(remaining / 1000);
+          const hours = Math.floor(totalSeconds / 3600);
+          const minutes = Math.floor((totalSeconds % 3600) / 60);
+          const seconds = totalSeconds % 60;
+          this.countdown = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }, 1000);
       },
 
@@ -189,9 +250,71 @@
         this.currentSwiper = e.detail.current;
       },
 
-      addToCart(e) {
-        const productId = e.currentTarget.dataset.id;
-        console.log('添加商品到购物车:', productId);
+      addToCart(item) {
+        item.quantity++;
+        this.saveFlashSaleToCart();
+      },
+
+      decreaseFromFlash(product) {
+        if (product.quantity > 0) {
+          product.quantity--;
+          this.saveFlashSaleToCart();
+        }
+      },
+
+      saveFlashSaleToCart() {
+        // 从本地存储读取现有购物车
+        const cartItems = uni.getStorageSync("cartItems") ? JSON.parse(uni.getStorageSync("cartItems")) : [];
+        // 更新限时特惠商品
+        this.flashSaleProducts.forEach(p => {
+          if (p.quantity > 0) {
+            const existIndex = cartItems.findIndex(c => c.name === p.name);
+            if (existIndex >= 0) {
+              cartItems[existIndex].quantity = p.quantity;
+            } else {
+              cartItems.push({
+                name: p.name,
+                spec: p.weight,
+                image: p.image,
+                currentPrice: p.currentPrice,
+                originalPrice: p.originalPrice,
+                quantity: p.quantity,
+                selected: true
+              });
+            }
+          } else {
+            // 数量为0，从购物车移除
+            const existIndex = cartItems.findIndex(c => c.name === p.name);
+            if (existIndex >= 0) {
+              cartItems.splice(existIndex, 1);
+            }
+          }
+        });
+        uni.setStorageSync("cartItems", JSON.stringify(cartItems));
+        this.updateSelectedTotal();
+      },
+
+      updateSelectedTotal() {
+        const cartItems = uni.getStorageSync("cartItems") ? JSON.parse(uni.getStorageSync("cartItems")) : [];
+        let count = 0;
+        let total = 0;
+        cartItems.forEach(item => {
+          if (item.selected !== false) {
+            count += item.quantity || 0;
+            total += (item.quantity || 0) * parseFloat(item.currentPrice.replace('¥', '') || 0);
+          }
+        });
+        this.selectedCount = count;
+        this.selectedTotal = total.toFixed(2);
+      },
+
+      syncAllCart() {
+        const cartItems = uni.getStorageSync("cartItems") ? JSON.parse(uni.getStorageSync("cartItems")) : [];
+        this.flashSaleProducts.forEach(p => {
+          const cartItem = cartItems.find(c => c.name === p.name);
+          p.quantity = cartItem ? (cartItem.quantity || 0) : 0;
+        });
+        this.updateSelectedTotal();
       },
 
       onShopNow() {
@@ -212,6 +335,14 @@
 
       goNeighbor() {
         uni.navigateTo({ url: '/pages/neighbor/index' })
+      },
+
+      goCart() {
+        uni.navigateTo({ url: '/pages/cart/index' })
+      },
+
+      goCheckout() {
+        uni.navigateTo({ url: '/pages/cart/index' })
       }
     }
   }
@@ -473,21 +604,42 @@
   margin-left: 16rpx;
 }
 
-.add-button {
-  width: 44rpx;
-  height: 44rpx;
-  background-color: #4F9A42;
-  border-radius: 50%;
+.quantity-inline {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.btn-minus,
+.btn-plus {
+  width: 40rpx;
+  height: 40rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: auto;
-  flex-shrink: 0;
+}
+
+.btn-minus {
+  border: 2rpx solid #E0E0E0;
+  border-radius: 50%;
+  background-color: #FFFFFF;
+}
+
+.btn-plus {
+  background-color: #4F9A42;
+  border-radius: 8rpx;
+}
+
+.minus-icon {
+  width: 18rpx;
+  height: 3rpx;
+  background-color: #999999;
+  border-radius: 2rpx;
 }
 
 .add-icon {
-  width: 20rpx;
-  height: 4rpx;
+  width: 18rpx;
+  height: 3rpx;
   background-color: #FFFFFF;
   border-radius: 2rpx;
   position: relative;
@@ -495,12 +647,19 @@
 .add-icon::after {
   content: '';
   position: absolute;
-  width: 4rpx;
-  height: 20rpx;
+  width: 3rpx;
+  height: 18rpx;
   background-color: #FFFFFF;
   border-radius: 2rpx;
-  top: -8rpx;
-  left: 8rpx;
+  top: -7rpx;
+  left: 7rpx;
+}
+
+.quantity-num {
+  font-size: 26rpx;
+  color: #333333;
+  min-width: 40rpx;
+  text-align: center;
 }
 
 /* 团购模块 */
@@ -582,5 +741,91 @@ swiper-item {
 .brand-logo {
   width: 96rpx;
   height: 96rpx;
+}
+
+/* 底部结算栏 */
+.checkout-bar {
+  position: fixed;
+  bottom: 100rpx;
+  left: 0;
+  right: 0;
+  height: 100rpx;
+  background-color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24rpx;
+  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.06);
+  z-index: 100;
+}
+
+.checkout-left {
+  display: flex;
+  align-items: center;
+}
+
+.checkout-cart-wrap {
+  position: relative;
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16rpx;
+}
+
+.checkout-cart-icon {
+  width: 75rpx;
+  height: 75rpx;
+}
+
+.checkout-cart-badge {
+  position: absolute;
+  top: -4rpx;
+  right: -8rpx;
+  min-width: 28rpx;
+  height: 28rpx;
+  background-color: #FF3333;
+  border-radius: 14rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6rpx;
+}
+
+.checkout-cart-badge text {
+  color: #FFFFFF;
+  font-size: 18rpx;
+}
+
+.checkout-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.checkout-count {
+  font-size: 22rpx;
+  color: #999999;
+}
+
+.checkout-total {
+  font-size: 22rpx;
+  color: #333333;
+  margin-top: 4rpx;
+}
+
+.checkout-price {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #4CAF50;
+}
+
+.checkout-btn {
+  background-color: #4f9a42;
+  color: #FFFFFF;
+  font-size: 28rpx;
+  font-weight: 600;
+  padding: 16rpx 48rpx;
+  border-radius: 40rpx;
 }
 </style>
