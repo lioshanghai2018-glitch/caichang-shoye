@@ -113,6 +113,30 @@
 				"navigationBarBackgroundColor": "#FFFFFF",
 				"navigationBarTextStyle": "black"
 			}
+		},
+		{
+			"path": "pages/neighbor/publish",
+			"style": {
+				"navigationBarTitleText": "发布帖子",
+				"navigationBarBackgroundColor": "#FFFFFF",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/neighbor/manage",
+			"style": {
+				"navigationBarTitleText": "我的发布",
+				"navigationBarBackgroundColor": "#FFFFFF",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/neighbor/cert",
+			"style": {
+				"navigationBarTitleText": "住户认证",
+				"navigationBarBackgroundColor": "#FFFFFF",
+				"navigationBarTextStyle": "black"
+			}
 		}
 	],
 	"globalStyle": {

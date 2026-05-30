@@ -27,53 +27,51 @@
 		</scroll-view>
 
 		<!-- 帖子列表 -->
-		<scroll-view class="post-list" scroll-y="true">
-			<view class="post-card" v-for="post in posts" :key="post.id" @tap="goPostDetail(post)">
-				<!-- 帖子头部：头像+用户名+标识+时间 -->
+		<scroll-view class="post-list" scroll-y="true" :refresher-enabled="true" :refresher-triggered="refreshing" @refresherrefresh="onRefresh">
+			<!-- 空状态 -->
+			<view class="empty-state" v-if="!loading && posts.length === 0">
+				<text class="empty-text">暂无帖子</text>
+				<text class="empty-sub">点击右下角"发布"发布第一条帖子</text>
+			</view>
+
+			<view class="post-card" v-for="post in posts" :key="post._id || post.id" @tap="goPostDetail(post)">
+				<!-- 帖子头部：用户ID+认证标识+时间 -->
 				<view class="post-header">
-					<view class="avatar"></view>
-					<view class="user-info">
-						<view class="user-row">
-							<text class="username">{{post.username}}</text>
-							<view class="badge" v-if="post.badge">
-								<text>{{post.badge}}</text>
-							</view>
+					<view class="user-id-wrap">
+						<text class="user-id">{{ getDisplayId(post.authorId) }}</text>
+						<view class="badge" v-if="post.isCertified || post.certified">
+							<text>已认证</text>
 						</view>
 					</view>
-					<text class="post-time">{{post.time}}</text>
+					<text class="post-time">{{formatTime(post.createdAt) || post.time}}</text>
 				</view>
+
+				<!-- 标题 -->
+				<text class="post-title">{{post.title}}</text>
 
 				<!-- 正文 -->
 				<text class="post-content">{{post.content}}</text>
 
-				<!-- 图片区（仅手艺服务类） -->
+				<!-- 图片区 -->
 				<view class="post-images" v-if="post.images && post.images.length > 0">
-					<view class="img-placeholder" v-for="(img, iIdx) in post.images" :key="iIdx">
-						<text>图</text>
-					</view>
+					<image class="post-img" v-for="(img, iIdx) in post.images" :key="iIdx" :src="img" mode="aspectFill" />
 				</view>
 
 				<!-- 底部信息行 -->
 				<view class="post-footer">
 					<view class="footer-left">
 						<view class="post-tag">
-							<text>{{post.tagLabel}}</text>
+							<text>{{post.categoryName || post.tagLabel}}</text>
 						</view>
 						<text class="post-price" v-if="post.price">{{post.price}}</text>
-						<text class="post-join" v-if="post.joinCount">{{post.joinCount}}</text>
 					</view>
 					<view class="footer-right">
-						<view class="footer-icon" v-if="post.phoneCount">
+						<view class="footer-icon" v-if="post.contactPhone">
 							<view class="iconfont icon-dianhua icon-text"></view>
-							<text class="icon-num">{{post.phoneCount}}</text>
-						</view>
-						<view class="footer-icon" v-if="post.commentCount">
-							<view class="iconfont icon-pinglun icon-text"></view>
-							<text class="icon-num">{{post.commentCount}}评论</text>
 						</view>
 						<view class="footer-icon">
 							<view class="iconfont icon-dianzan icon-text"></view>
-							<text class="icon-num">{{post.likeCount}}</text>
+							<text class="icon-num">{{post.likes || 0}}</text>
 						</view>
 					</view>
 				</view>
@@ -99,75 +97,163 @@
 </template>
 
 <script>
-	export default {
-		data() {
-			return {
-				menuOpen: false,
-				currentTag: 0,
-				tags: ['全部', '邻里互助', '手艺服务', '相约同行', '相亲交友', '二手闲置'],
-				posts: [
-					{
-						id: 1,
-						username: '张师傅',
-						badge: '认证手艺',
-						time: '2小时前',
-						content: '专业水电维修 15年经验',
-						tagLabel: '水电维修',
-						price: '¥80起',
-						phoneCount: 12,
-						likeCount: 12,
-						joinCount: '',
-						commentCount: '',
-						images: [1, 2, 3]
-					},
-					{
-						id: 2,
-						username: '和业小王',
-						badge: '',
-						time: '5小时前',
-						content: '周六早起徒步象山 周末约起来',
-						tagLabel: '徒步',
-						price: '',
-						phoneCount: '',
-						likeCount: 23,
-						joinCount: '6人已报名',
-						commentCount: 8,
-						images: []
-					},
-					{
-						id: 3,
-						username: '李姐',
-						badge: '认证邻居',
-						time: '昨天',
-						content: '谁家有多余的葱？我拿鸡蛋换',
-						tagLabel: '互助',
-						price: '',
-						phoneCount: '',
-						likeCount: 9,
-						joinCount: '',
-						commentCount: 5,
-						images: []
-					}
-				]
-			}
-		},
-		methods: {
+import { getPostList } from '@/utils/neighbor-api.js'
+
+export default {
+	data() {
+		return {
+			menuOpen: false,
+			currentTag: 0,
+			tags: ['全部', '邻里互助', '手艺服务', '相约同行', '相亲交友', '二手闲置'],
+			searchKeyword: '',
+			posts: [],
+			loading: false,
+			refreshing: false
+		}
+	},
+	onLoad() {
+		this.loadPosts()
+	},
+	methods: {
 			switchTag(index) {
 				this.currentTag = index
+				this.resetAndLoad()
 			},
 			toggleMenu() {
 				this.menuOpen = !this.menuOpen
 			},
 			onPublish() {
 				this.menuOpen = false
-				uni.showToast({ title: '发布功能开发中', icon: 'none' })
+				const status = uni.getStorageSync('cert_status') || 'none'
+				if (status !== 'certified') {
+					uni.showModal({
+						title: '需要认证',
+						content: '发布帖子需要先完成住户认证，认证通过后可享受社区全部功能。',
+						confirmText: '去认证',
+						success: (res) => {
+							if (res.confirm) {
+								uni.navigateTo({ url: '/pages/neighbor/cert' })
+							}
+						}
+					})
+					return
+				}
+				uni.navigateTo({ url: '/pages/neighbor/publish' })
 			},
 			onManage() {
 				this.menuOpen = false
-				uni.showToast({ title: '管理功能开发中', icon: 'none' })
+				uni.navigateTo({ url: '/pages/neighbor/manage' })
+			},
+			getDisplayId(authorId) {
+				if (!authorId) return '游客'
+				// 如果是长ID，截取后6位显示
+				if (authorId.length > 8) {
+					return authorId.slice(-6)
+				}
+				return authorId
 			},
 			goPostDetail(post) {
-				uni.navigateTo({ url: '/pages/neighbor/detail?id=' + post.id + '&title=' + encodeURIComponent(post.content.substring(0,20)) + '&author=' + encodeURIComponent(post.username) + '&time=' + encodeURIComponent(post.time) })
+				const id = post._id || post.id
+				uni.navigateTo({ url: '/pages/neighbor/detail?id=' + id + '&title=' + encodeURIComponent(post.title || post.content.substring(0,20)) + '&author=' + encodeURIComponent(post.authorName || post.username) + '&time=' + encodeURIComponent(post.createdAt || post.time) })
+			},
+			onSearch(e) {
+				this.searchKeyword = e.detail.value || ''
+				this.resetAndLoad()
+			},
+			resetAndLoad() {
+				this.posts = []
+				this.loadPosts()
+			},
+			async loadPosts() {
+				if (this.loading) return
+				this.loading = true
+
+				try {
+					const categoryIndex = this.currentTag === 0 ? '' : this.currentTag
+					const res = await getPostList({
+						category: categoryIndex,
+						keyword: this.searchKeyword,
+						status: 1
+					})
+					this.posts = res.data || []
+				} catch (e) {
+					// 使用本地存储 + Mock 数据
+					let localPosts = uni.getStorageSync('local_posts') || []
+					if (this.currentTag > 0) {
+						localPosts = localPosts.filter(p => p.categoryIndex === this.currentTag)
+					}
+					if (this.searchKeyword) {
+						localPosts = localPosts.filter(p =>
+							p.title.includes(this.searchKeyword) ||
+							p.content.includes(this.searchKeyword)
+						)
+					}
+
+					if (localPosts.length === 0) {
+						localPosts = [
+							{
+								id: 1,
+								username: '张师傅',
+								badge: '认证手艺',
+								time: '2小时前',
+								content: '专业水电维修 15年经验',
+								tagLabel: '水电维修',
+								price: '¥80起',
+								phoneCount: 12,
+								likeCount: 12,
+								joinCount: '',
+								commentCount: '',
+								images: [1, 2, 3]
+							},
+							{
+								id: 2,
+								username: '和业小王',
+								badge: '',
+								time: '5小时前',
+								content: '周六早起徒步象山 周末约起来',
+								tagLabel: '徒步',
+								price: '',
+								phoneCount: '',
+								likeCount: 23,
+								joinCount: '6人已报名',
+								commentCount: 8,
+								images: []
+							},
+							{
+								id: 3,
+								username: '李姐',
+								badge: '认证邻居',
+								time: '昨天',
+								content: '谁家有多余的葱？我拿鸡蛋换',
+								tagLabel: '互助',
+								price: '',
+								phoneCount: '',
+								likeCount: 9,
+								joinCount: '',
+								commentCount: 5,
+								images: []
+							}
+						]
+					}
+					this.posts = localPosts
+				}
+				this.loading = false
+			},
+			async onRefresh() {
+				this.refreshing = true
+				await this.loadPosts()
+				this.refreshing = false
+			},
+			formatTime(isoString) {
+				if (!isoString) return ''
+				const date = new Date(isoString)
+				const now = new Date()
+				const diff = now - date
+				if (diff < 60000) return '刚刚'
+				if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
+				if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前'
+				if (diff < 604800000) return Math.floor(diff / 86400000) + '天前'
+				return date.toLocaleDateString('zh-CN')
 			}
 		}
 	}
@@ -275,6 +361,41 @@
 	padding: 0 24rpx;
 }
 
+.empty-state {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding-top: 200rpx;
+}
+
+.empty-text {
+	font-size: 32rpx;
+	color: #333;
+	font-weight: 600;
+}
+
+.empty-sub {
+	font-size: 26rpx;
+	color: #999;
+	margin-top: 16rpx;
+}
+
+.post-title {
+	font-size: 28rpx;
+	font-weight: 600;
+	color: #333;
+	margin-top: 16rpx;
+	display: block;
+}
+
+.post-img {
+	width: 140rpx;
+	height: 140rpx;
+	border-radius: 8rpx;
+	margin-right: 8rpx;
+}
+
 /* 帖子卡片 */
 .post-card {
 	background-color: #FFFFFF;
@@ -289,25 +410,19 @@
 	align-items: center;
 }
 
-.avatar {
-	width: 80rpx;
-	height: 80rpx;
-	border-radius: 50%;
-	background-color: #E8F5E9;
-	flex-shrink: 0;
+/* 帖子头部 */
+.post-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
 }
 
-.user-info {
-	flex: 1;
-	margin-left: 16rpx;
-}
-
-.user-row {
+.user-id-wrap {
 	display: flex;
 	align-items: center;
 }
 
-.username {
+.user-id {
 	font-size: 26rpx;
 	font-weight: 600;
 	color: #333333;

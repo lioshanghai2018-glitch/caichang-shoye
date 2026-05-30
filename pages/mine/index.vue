@@ -87,6 +87,24 @@
 
 		<!-- 功能选项列表 -->
 		<view class="option-list">
+			<!-- 认证状态卡片 -->
+			<view class="cert-card" :class="certStatus" @tap="goCert">
+				<view class="cert-left">
+					<view class="cert-icon-wrap">
+						<text class="cert-icon">{{ certIcon }}</text>
+					</view>
+					<view class="cert-info">
+						<text class="cert-title">{{ certTitle }}</text>
+						<text class="cert-desc">{{ certDesc }}</text>
+					</view>
+				</view>
+				<view class="cert-action">
+					<text class="cert-btn-text">{{ certBtnText }}</text>
+					<view class="icon-arrow"></view>
+				</view>
+			</view>
+			<view class="option-divider"></view>
+
 			<!-- 邻里社区 -->
 			<view class="option-item" @tap="goNeighbor">
 				<view class="iconfont icon-linlishequ"></view>
@@ -131,13 +149,16 @@
 </template>
 
 <script>
+	import { getLocalCertStatus } from '@/utils/neighbor-api.js'
+
 	export default {
 		data() {
 			return {
 				currentGrowth: 2350,
 				nextLevelGrowth: 3000,
 				currentLevel: 'V1',
-				nextLevel: 'V2'
+				nextLevel: 'V2',
+				certStatus: 'none'
 			}
 		},
 		computed: {
@@ -146,9 +167,49 @@
 			},
 			pointsNeeded() {
 				return this.nextLevelGrowth - this.currentGrowth
+			},
+			certIcon() {
+				const icons = { none: '?', pending: '⏳', certified: '✓', rejected: '✗' }
+				return icons[this.certStatus] || '?'
+			},
+			certTitle() {
+				const titles = {
+					none: '住户认证',
+					pending: '认证审核中',
+					certified: '已认证住户',
+					rejected: '认证被拒'
+				}
+				return titles[this.certStatus] || ''
+			},
+			certDesc() {
+				const descs = {
+					none: '完成认证即可发布帖子',
+					pending: '请耐心等待审核结果',
+					certified: '可享受社区全部功能',
+					rejected: '请重新上传认证资料'
+				}
+				return descs[this.certStatus] || ''
+			},
+			certBtnText() {
+				const texts = {
+					none: '去认证',
+					pending: '查看进度',
+					certified: '已认证',
+					rejected: '重新认证'
+				}
+				return texts[this.certStatus] || ''
 			}
 		},
+		onShow() {
+			this.loadCertStatus()
+		},
 		methods: {
+			loadCertStatus() {
+				this.certStatus = getLocalCertStatus()
+			},
+			goCert() {
+				uni.navigateTo({ url: '/pages/neighbor/cert' })
+			},
 			goOrder() {
 				uni.switchTab({ url: '/pages/order/index' })
 			},
@@ -482,6 +543,115 @@
 	font-weight: 400;
 	color: #666666;
 	margin-top: 4rpx;
+}
+
+/* ========== 认证卡片 ========== */
+.cert-card {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 24rpx 20rpx;
+	border-radius: 12rpx;
+	margin-bottom: 8rpx;
+}
+
+.cert-card.none {
+	background-color: #FFF8E1;
+}
+
+.cert-card.pending {
+	background-color: #FFF8E1;
+}
+
+.cert-card.certified {
+	background-color: #E8F5E9;
+}
+
+.cert-card.rejected {
+	background-color: #FFEBEE;
+}
+
+.cert-left {
+	display: flex;
+	align-items: center;
+}
+
+.cert-icon-wrap {
+	width: 64rpx;
+	height: 64rpx;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-right: 16rpx;
+}
+
+.cert-card.none .cert-icon-wrap {
+	background-color: #FFF;
+}
+
+.cert-card.pending .cert-icon-wrap {
+	background-color: #FFF;
+}
+
+.cert-card.certified .cert-icon-wrap {
+	background-color: #FFF;
+}
+
+.cert-card.rejected .cert-icon-wrap {
+	background-color: #FFF;
+}
+
+.cert-icon {
+	font-size: 32rpx;
+}
+
+.cert-card.none .cert-icon {
+	color: #999;
+}
+
+.cert-card.pending .cert-icon {
+	color: #FFC107;
+}
+
+.cert-card.certified .cert-icon {
+	color: #4F9A42;
+}
+
+.cert-card.rejected .cert-icon {
+	color: #FF6B6B;
+}
+
+.cert-info {
+	display: flex;
+	flex-direction: column;
+}
+
+.cert-title {
+	font-size: 28rpx;
+	font-weight: 600;
+	color: #333;
+}
+
+.cert-desc {
+	font-size: 24rpx;
+	color: #666;
+	margin-top: 4rpx;
+}
+
+.cert-action {
+	display: flex;
+	align-items: center;
+}
+
+.cert-btn-text {
+	font-size: 26rpx;
+	color: #4F9A42;
+	margin-right: 8rpx;
+}
+
+.cert-card.certified .cert-btn-text {
+	color: #4F9A42;
 }
 
 /* ========== 功能选项列表 ========== */

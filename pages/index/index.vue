@@ -206,7 +206,6 @@
                   currentPrice: '¥' + item.flashPrice,
                   quantity: 0
                 }));
-                this.syncFlashSaleCart();
               }
               this.flashSaleLoading = false;
               return;
